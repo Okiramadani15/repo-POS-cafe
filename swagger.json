@@ -1,0 +1,63 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+      "title": "POS Cafe API",
+      "version": "1.0.0",
+      "description": "Dokumentasi API untuk sistem Point of Sale Cafe"
+    },
+    "servers": [
+      {
+        "url": "http://localhost:8080"
+      }
+    ],
+    "paths": {
+      "/api/products": {
+        "get": {
+          "tags": ["Products"],
+          "summary": "Ambil semua daftar menu cafe",
+          "parameters": [
+            {
+              "name": "category",
+              "in": "query",
+              "schema": { "type": "string" },
+              "description": "Filter berdasarkan nama kategori"
+            }
+          ],
+          "responses": {
+            "200": { "description": "Berhasil mendapatkan data produk" }
+          }
+        }
+      },
+      "/api/orders": {
+        "post": {
+          "tags": ["Orders"],
+          "summary": "Buat pesanan baru (Checkout)",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "product_id": { "type": "string", "example": "f5765679-8b25-4074-8df4-d76659f72af7" },
+                          "quantity": { "type": "integer", "example": 2 }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "201": { "description": "Order Berhasil Dibuat" }
+          }
+        }
+      }
+    }
+  }
