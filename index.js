@@ -1,8 +1,11 @@
 const express = require('express');
 const swaggerUi = require('swagger-ui-express');
-const swaggerDocument = require('./swagger.json'); // Ambil file JSON tadi
+const swaggerDocument = require('./swagger.json');
 const productRoutes = require('./routes/productRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const authRoutes = require('./routes/authRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
+
 
 const app = express();
 app.use(express.json());
@@ -12,6 +15,9 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.use('/api', productRoutes);
 app.use('/api', orderRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/auth', authRoutes);
+
 
 app.get('/ping', (req, res) => res.send('Server Berhasil Hidup!'));
 

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { createOrder } = require('../controllers/orderController');
+const { verifyToken } = require('../middleware/authMiddleware'); // PERBAIKAN: Gunakan {}
 
 /**
  * @swagger
@@ -8,6 +9,8 @@ const { createOrder } = require('../controllers/orderController');
  * post:
  * summary: Buat pesanan baru (Checkout)
  * tags: [Orders]
+ * security:
+ * - bearerAuth: []
  * requestBody:
  * required: true
  * content:
@@ -15,6 +18,9 @@ const { createOrder } = require('../controllers/orderController');
  * schema:
  * type: object
  * properties:
+ * table_no:
+ * type: integer
+ * example: 5
  * items:
  * type: array
  * items:
@@ -30,6 +36,6 @@ const { createOrder } = require('../controllers/orderController');
  * 201:
  * description: Order Berhasil Dibuat
  */
-router.post('/orders', createOrder);
+router.post('/orders', verifyToken, createOrder);
 
 module.exports = router;
