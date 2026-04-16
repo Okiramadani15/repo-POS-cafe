@@ -1,7 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const { getAllProducts } = require('../controllers/productController');
+const { getAllProducts, createProduct, updateProduct, deleteProduct } = require('../controllers/productController');
+const { verifyToken, authorizeRole } = require('../middleware/authMiddleware');
 
-router.get('/products', getAllProducts);
+// Endpoint publik/kasir
+router.get('/', getAllProducts);
+
+// Endpoint Admin
+router.post('/', verifyToken, authorizeRole(['admin']), createProduct);
+router.put('/:id', verifyToken, authorizeRole(['admin']), updateProduct);
+router.delete('/:id', verifyToken, authorizeRole(['admin']), deleteProduct);
 
 module.exports = router;

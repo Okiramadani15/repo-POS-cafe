@@ -1,7 +1,7 @@
 {
     "openapi": "3.0.0",
     "info": {
-      "title": "POS Cafe API",
+      "title": "POS Cafe API - Mill 2",
       "version": "1.0.0",
       "description": "Dokumentasi API untuk sistem Point of Sale Cafe - PT. Karyabhakti Manunggal"
     },
@@ -28,12 +28,7 @@
       "/api/auth/register": {
         "post": {
           "tags": ["Auth"],
-          "summary": "Daftar user/kasir baru",
-          "security": [
-            {
-              "bearerAuth": []
-            }
-          ],
+          "summary": "Daftar user baru",
           "requestBody": {
             "required": true,
             "content": {
@@ -41,24 +36,21 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "username": { "type": "string", "example": "okiramadani" },
+                    "username": { "type": "string", "example": "admin_mill2" },
                     "password": { "type": "string", "example": "password123" },
-                    "role": { "type": "string", "example": "kasir" }
+                    "role": { "type": "string", "example": "admin" }
                   }
                 }
               }
             }
           },
-          "responses": {
-            "201": { "description": "User berhasil dibuat" },
-            "401": { "description": "Unauthorized - Token tidak ditemukan" }
-          }
+          "responses": { "201": { "description": "User created" } }
         }
       },
       "/api/auth/login": {
         "post": {
           "tags": ["Auth"],
-          "summary": "Login untuk mendapatkan token akses",
+          "summary": "Login user",
           "requestBody": {
             "required": true,
             "content": {
@@ -66,54 +58,108 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "username": { "type": "string", "example": "okiramadani" },
-                    "password": { "type": "string", "example": "password123" }
+                    "username": { "type": "string" },
+                    "password": { "type": "string" }
                   }
                 }
               }
             }
           },
-          "responses": {
-            "200": { "description": "Login berhasil, token diberikan" }
-          }
+          "responses": { "200": { "description": "Login success" } }
         }
       },
       "/api/products": {
         "get": {
           "tags": ["Products"],
-          "summary": "Ambil semua daftar menu cafe",
+          "summary": "Ambil semua daftar menu",
           "parameters": [
-            {
-              "name": "category",
-              "in": "query",
-              "schema": { "type": "string" },
-              "description": "Filter berdasarkan nama kategori"
-            }
+            { "name": "category", "in": "query", "schema": { "type": "string" } }
           ],
-          "responses": {
-            "200": { "description": "Berhasil mendapatkan data produk" }
-          }
-        }
-      },
-      "/api/orders": {
+          "responses": { "200": { "description": "Success" } }
+        },
         "post": {
-          "tags": ["Orders"],
-          "summary": "Buat pesanan baru (Checkout)",
+          "tags": ["Products"],
+          "summary": "Tambah produk baru (Admin Only)",
           "security": [{ "bearerAuth": [] }],
           "requestBody": {
-            "required": true,
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "name": { "type": "string" },
+                    "price": { "type": "number" },
+                    "cost_price": { "type": "number" },
+                    "stock": { "type": "integer" },
+                    "category_id": { "type": "string", "format": "uuid" },
+                    "sku": { "type": "string" },
+                    "image_url": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "responses": { "201": { "description": "Created" } }
+        }
+      },
+      "/api/products/{id}": {
+        "put": {
+          "tags": ["Products"],
+          "summary": "Update produk berdasarkan ID",
+          "security": [{ "bearerAuth": [] }],
+          "parameters": [
+            { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+          ],
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": { "type": "string" },
+                    "price": { "type": "number" },
+                    "cost_price": { "type": "number" },
+                    "stock": { "type": "integer" },
+                    "category_id": { "type": "string", "format": "uuid" },
+                    "sku": { "type": "string" },
+                    "image_url": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "responses": { "200": { "description": "Updated" } }
+        },
+        "delete": {
+          "tags": ["Products"],
+          "summary": "Hapus produk berdasarkan ID",
+          "security": [{ "bearerAuth": [] }],
+          "parameters": [
+            { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+          ],
+          "responses": { "200": { "description": "Deleted" } }
+        }
+      }
+      },
+      "/api/orders": {
+        "post": {
+          "tags": ["Orders"],
+          "summary": "Buat pesanan baru",
+          "security": [{ "bearerAuth": [] }],
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "table_id": { "type": "string", "format": "uuid" },
                     "items": {
                       "type": "array",
                       "items": {
                         "type": "object",
                         "properties": {
-                          "product_id": { "type": "string", "example": "f5765679-8b25-4074-8df4-d76659f72af7" },
-                          "quantity": { "type": "integer", "example": 2 }
+                          "product_id": { "type": "string" },
+                          "quantity": { "type": "integer" }
                         }
                       }
                     }
@@ -122,34 +168,47 @@
               }
             }
           },
-          "responses": {
-            "201": { "description": "Order Berhasil Dibuat" },
-            "401": { "description": "Unauthorized - Butuh token login" }
-          }
+          "responses": { "201": { "description": "Order success" } }
         }
       },
-      "/api/dashboard/cashier-stats": {
-        "get": {
-          "tags": ["Dashboard"],
-          "summary": "Statistik pendapatan per kasir dengan filter waktu",
-          "security": [{ "bearerAuth": [] }],
-          "parameters": [
-            {
-              "name": "period",
-              "in": "query",
-              "description": "Filter waktu pendapatan",
-              "required": false,
-              "schema": {
-                "type": "string",
-                "enum": ["today", "month", "year"],
-                "example": "today"
+      "/api/tables": {
+        "get": { "tags": ["Tables"], "summary": "Ambil daftar meja" },
+        "post": {
+          "tags": ["Tables"],
+          "summary": "Tambah meja",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "table_number": { "type": "string" },
+                    "capacity": { "type": "integer" }
+                  }
+                }
               }
             }
-          ],
-          "responses": {
-            "200": { "description": "Berhasil mengambil data statistik" }
-          }
+          },
+          "responses": { "201": { "description": "Table created" } }
+        }
+      },
+      "/api/categories": {
+        "get": { "tags": ["Categories"], "summary": "Daftar kategori" },
+        "post": {
+          "tags": ["Categories"],
+          "summary": "Tambah kategori",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "name": { "type": "string" } }
+                }
+              }
+            }
+          },
+          "responses": { "201": { "description": "Category created" } }
         }
       }
     }
-  }
+  
