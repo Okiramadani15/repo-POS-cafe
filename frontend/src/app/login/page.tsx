@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import api from '@/api/axiosConfig';
 import { Coffee, Lock, User, Loader2, AlertCircle } from 'lucide-react';
+import { useAppSettings, BACKEND_URL } from '@/hooks/useAppSettings';
 
 export default function LoginPage() {
   const [username, setUsername] = useState<string>('');
@@ -11,6 +13,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const router = useRouter();
+  const { settings } = useAppSettings();
+  const logoUrl = settings.login_logo_url || settings.logo_url;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,11 +56,23 @@ export default function LoginPage() {
       <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100">
         <div className="p-8">
           <div className="text-center mb-10">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-600 rounded-full shadow-lg mb-4">
-              <Coffee className="text-white w-10 h-10" />
-            </div>
-            <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Point Of Sale</h2>
-            <p className="text-slate-500 mt-2 font-medium">Sistem Manajemen Cafe & Resto</p>
+            {logoUrl ? (
+              <div className="inline-flex items-center justify-center w-20 h-20 mb-4">
+                <Image
+                  src={BACKEND_URL + logoUrl}
+                  alt="Logo"
+                  width={80}
+                  height={80}
+                  className="rounded-full object-contain shadow-lg"
+                />
+              </div>
+            ) : (
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-600 rounded-full shadow-lg mb-4">
+                <Coffee className="text-white w-10 h-10" />
+              </div>
+            )}
+            <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">{settings.store_name}</h2>
+            <p className="text-slate-500 mt-2 font-medium">{settings.tagline}</p>
           </div>
 
           {error && (

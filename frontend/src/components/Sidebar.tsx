@@ -1,23 +1,29 @@
 "use client";
 import React, { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { 
-  LayoutDashboard, Package, ShoppingCart, 
-  Users, Settings, LogOut, Coffee, Menu, X 
+import {
+  LayoutDashboard, Package, ShoppingCart,
+  Users, Settings, LogOut, Coffee, Menu, X,
+  LayoutGrid, Tag
 } from 'lucide-react';
+import { useAppSettings, BACKEND_URL } from '@/hooks/useAppSettings';
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const { settings } = useAppSettings();
 
   const menuItems = [
-    { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/admin/dashboard' },
-    { name: 'Produk/Menu', icon: <Package size={20} />, path: '/admin/products' },
-    { name: 'Transaksi', icon: <ShoppingCart size={20} />, path: '/admin/orders' },
-    { name: 'Karyawan', icon: <Users size={20} />, path: '/admin/staff' },
-    { name: 'Pengaturan', icon: <Settings size={20} />, path: '/admin/settings' },
+    { name: 'Dashboard',  icon: <LayoutDashboard size={20} />, path: '/admin/dashboard' },
+    { name: 'Produk/Menu',icon: <Package size={20} />,         path: '/admin/products'  },
+    { name: 'Kategori',   icon: <Tag size={20} />,             path: '/admin/categories'},
+    { name: 'Meja',       icon: <LayoutGrid size={20} />,      path: '/admin/tables'    },
+    { name: 'Transaksi',  icon: <ShoppingCart size={20} />,    path: '/admin/orders'    },
+    { name: 'Karyawan',   icon: <Users size={20} />,           path: '/admin/staff'     },
+    { name: 'Pengaturan', icon: <Settings size={20} />,        path: '/admin/settings'  },
   ];
 
   return (
@@ -45,10 +51,22 @@ const Sidebar = () => {
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="p-6 flex items-center gap-3 border-b border-slate-50">
-          <div className="bg-blue-600 p-2 rounded-lg text-white">
-            <Coffee size={24} />
-          </div>
-          <span className="font-bold text-xl text-slate-800 tracking-tight">Point Of Sale</span>
+          {settings.logo_url ? (
+            <Image
+              src={BACKEND_URL + settings.logo_url}
+              alt="Logo"
+              width={40}
+              height={40}
+              className="rounded-lg object-contain"
+            />
+          ) : (
+            <div className="bg-blue-600 p-2 rounded-lg text-white">
+              <Coffee size={24} />
+            </div>
+          )}
+          <span className="font-bold text-xl text-slate-800 tracking-tight">
+            {settings.store_name}
+          </span>
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">

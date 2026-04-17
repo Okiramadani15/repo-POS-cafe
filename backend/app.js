@@ -12,6 +12,8 @@ const authRoutes = require('./routes/authRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const tableRoutes = require('./routes/tableRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
+const userRoutes     = require('./routes/userRoutes');
+const settingsRoutes = require('./routes/settingsRoutes');
 
 const app = express();
 
@@ -70,6 +72,8 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/tables', tableRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/users',    userRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/ping', (req, res) => {

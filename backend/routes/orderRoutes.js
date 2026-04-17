@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { createOrder } = require('../controllers/orderController');
-const { verifyToken } = require('../middleware/authMiddleware'); // PERBAIKAN: Gunakan {}
+const { createOrder, getAllOrders, getOrderDetail, deleteOrder } = require('../controllers/orderController');
+const { verifyToken, authorizeRole } = require('../middleware/authMiddleware');
 
 /**
  * @swagger
@@ -37,5 +37,8 @@ const { verifyToken } = require('../middleware/authMiddleware'); // PERBAIKAN: G
  * description: Order Berhasil Dibuat
  */
 router.post('/', verifyToken, createOrder);
+router.get('/', verifyToken, authorizeRole(['admin', 'owner']), getAllOrders);
+router.get('/:id', verifyToken, authorizeRole(['admin', 'owner']), getOrderDetail);
+router.delete('/:id', verifyToken, authorizeRole(['admin', 'owner']), deleteOrder);
 
 module.exports = router;
