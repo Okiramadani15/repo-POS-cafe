@@ -36,6 +36,6 @@ const { verifyToken } = require('../middleware/authMiddleware'); // PERBAIKAN: G
  * 201:
  * description: Order Berhasil Dibuat
  */
-router.post('/orders', verifyToken, createOrder);
+router.post('/', verifyToken, createOrder);
 
 module.exports = router;
