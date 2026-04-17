@@ -2,11 +2,10 @@ const pool = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-// Fungsi untuk Daftar User Baru (Hanya bisa dipanggil oleh Admin)
+// Fungsi untuk Daftar User Baru
 const register = async (req, res) => {
     const { username, password, role } = req.body;
     
-    // Validasi agar role yang dimasukkan hanya yang diizinkan
     const validRoles = ['admin', 'kasir', 'owner'];
     const selectedRole = role ? role.toLowerCase() : 'kasir';
 
@@ -27,11 +26,11 @@ const register = async (req, res) => {
         );
         res.status(201).json({ 
             status: 'success', 
-            message: `User ${username} dengan role ${selectedRole} berhasil dibuat`,
-            data: newUser.rows[0] 
+            message: `User ${username} berhasil dibuat`,
+            token: null, // Konsistensi payload
+            role: newUser.rows[0].role
         });
     } catch (error) {
-        // Cek jika username sudah ada (Unique Constraint)
         if (error.code === '23505') {
             return res.status(400).json({ status: 'error', message: 'Username sudah terdaftar' });
         }
@@ -43,37 +42,48 @@ const register = async (req, res) => {
 const login = async (req, res) => {
     const { username, password } = req.body;
     try {
+        // 1. Cari user
         const userResult = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
         
         if (userResult.rows.length === 0) {
-            return res.status(401).json({ status: 'error', message: 'User tidak ditemukan' });
+            return res.status(401).json({ 
+                status: 'error', 
+                message: 'Username tidak terdaftar' 
+            });
         }
 
         const user = userResult.rows[0];
+
+        // 2. Cek Password
         const isMatch = await bcrypt.compare(password, user.password);
-        
         if (!isMatch) {
-            return res.status(401).json({ status: 'error', message: 'Password salah' });
+            return res.status(401).json({ 
+                status: 'error', 
+                message: 'Password yang Anda masukkan salah' 
+            });
         }
 
-        // Buat Token dengan payload ID dan ROLE
+        // 3. Buat Token (Pastikan secret ini sama dengan yang ada di middleware auth)
         const token = jwt.sign(
-            { 
-                id: user.id, 
-                role: user.role // Info ini akan dibaca oleh authorizeRole
-            },
-            'rahasia_mill_2',
-            { expiresIn: '1d' }
+            { id: user.id, role: user.role },
+            'rahasia_super_secret',
+            { expiresIn: '24h' }
         );
 
-        res.json({ 
+        // 4. Kirim Response (Disesuaikan agar mudah dibaca Axios)
+        res.status(200).json({ 
             status: 'success', 
-            message: 'Login berhasil',
-            role: user.role, // Kirim role ke frontend juga agar UI bisa menyesuaikan
-            token 
+            token: token, 
+            role: user.role,
+            username: user.username 
         });
+
     } catch (error) {
-        res.status(500).json({ status: 'error', message: error.message });
+        console.error("Login Error:", error);
+        res.status(500).json({ 
+            status: 'error', 
+            message: 'Terjadi kesalahan pada server' 
+        });
     }
 };
 

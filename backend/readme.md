@@ -1,81 +1,271 @@
-# POS Cafe Backend API - Mill 2
+# POS Cafe — Backend API
 
-Sistem Backend Point of Sale (POS) profesional untuk manajemen Cafe yang dibangun menggunakan Node.js, Express, dan PostgreSQL. Sistem ini dirancang untuk menangani transaksi riil dengan keamanan tingkat tinggi, manajemen stok presisi, dan dokumentasi API yang interaktif.
+REST API untuk sistem Point of Sale cafe, dibangun dengan **Node.js**, **Express.js**, dan **PostgreSQL**. Mendukung autentikasi JWT, manajemen stok otomatis, transaksi atomik, dan dokumentasi Swagger interaktif.
 
-## 🚀 Fitur Utama
+---
 
-* **Autentikasi & Otorisasi (RBAC)**: Sistem keamanan menggunakan **JWT (JSON Web Token)** dengan pembatasan akses berdasarkan peran (Role):
-    * **Admin**: Akses penuh (CRUD Produk, Meja, Kategori, User).
-    * **Kasir**: Fokus pada operasional transaksi (Checkout) dan manajemen Meja.
-    * **Owner**: Akses khusus laporan dan statistik pendapatan (Dashboard).
-* **Full CRUD Manajemen**: Pengelolaan data Produk (termasuk modal/cost price), Kategori, dan Meja secara dinamis.
-* **Sistem Pesanan (Order)**: Mendukung transaksi multi-item dengan pencatatan harga historis menggunakan kolom `price_at_time`.
-* **Manajemen Stok Otomatis**: Pengurangan stok produk secara otomatis menggunakan database transaction untuk mencegah data tidak konsisten.
-* **Integritas Data**: Implementasi sistem `BEGIN`, `COMMIT`, dan `ROLLBACK` pada proses checkout untuk menjamin keamanan data transaksi.
-* **Dokumentasi Swagger 3.0**: API yang mudah diuji melalui antarmuka grafis Swagger UI dengan dukungan **Bearer Authentication**.
+## Tech Stack
 
-## 🛠️ Tech Stack
+| Komponen     | Library / Versi           |
+| :----------- | :------------------------ |
+| Runtime      | Node.js (v14+)            |
+| Framework    | Express.js 4.18.2         |
+| Database     | PostgreSQL + `pg` 8.20.0  |
+| Auth         | jsonwebtoken 9.0.3        |
+| Hash         | bcryptjs 3.0.3            |
+| API Docs     | swagger-ui-express 5.0.1  |
+| Dev Server   | nodemon 3.1.14            |
 
-* **Runtime**: Node.js
-* **Framework**: Express.js
-* **Database**: PostgreSQL
-* **Keamanan**: BcryptJS (Hashing Password), JSONWebToken (JWT)
-* **Dokumentasi**: Swagger UI Express (OpenAPI 3.0)
+---
 
-## 📋 Prasyarat
+## Struktur Direktori
 
-* Node.js (v14 atau lebih baru)
-* PostgreSQL
-* DBeaver atau tool database lainnya (untuk manajemen database manual)
+```
+backend/
+├── index.js              # Entry point — start server port 8080
+├── app.js                # Express setup, middleware, route registration
+├── swagger.json          # OpenAPI 3.0 spec (generated)
+├── config/
+│   └── db.js             # PostgreSQL connection pool
+├── middleware/
+│   └── authMiddleware.js # JWT verification + role-based guard
+├── controllers/
+│   ├── authController.js      # register, login
+│   ├── productController.js   # CRUD produk + filter kategori
+│   ├── categoryController.js  # CRUD kategori
+│   ├── tableController.js     # CRUD meja + update status
+│   ├── orderController.js     # Checkout + potong stok (transaksi atomik)
+│   └── dashboardController.js # Statistik kasir & pendapatan
+└── routes/
+    ├── authRoutes.js
+    ├── productRoutes.js
+    ├── categoryRoutes.js
+    ├── tableRoutes.js
+    ├── orderRoutes.js
+    └── dashboardRoutes.js
+```
 
-## ⚙️ Instalasi
+---
 
-1.  **Clone repository**:
-    ```bash
-    git clone [https://github.com/Okiramadani15/POS_project.git](https://github.com/Okiramadani15/POS_project.git)
-    cd POS_project
-    ```
+## Instalasi & Setup
 
-2.  **Instal dependensi**:
-    ```bash
-    npm install
-    ```
+### 1. Clone & Install
 
-3.  **Konfigurasi database** di `config/db.js`:
-    Pastikan kredensial sesuai dengan database `POS_cafe` di lokal atau server Anda.
+```bash
+cd Pos-cafe/backend
+npm install
+```
 
-4.  **Jalankan server**:
-    ```bash
-    npx nodemon index.js
-    ```
+### 2. Konfigurasi Environment
 
-## 📖 Dokumentasi API
+Buat file `.env` di root folder `backend/`:
 
-Setelah server berjalan, akses dokumentasi interaktif untuk mencoba semua endpoint di:
-`http://localhost:8080/api-docs`
+```env
+# Database
+DB_USER=postgres
+DB_HOST=localhost
+DB_NAME=POS_cafe
+DB_PASSWORD=your_password
+DB_PORT=5432
 
-### Daftar Endpoint Utama:
+# JWT
+JWT_SECRET=ganti_dengan_secret_yang_kuat_dan_acak
+```
 
-| Method | Endpoint | Role Akses | Deskripsi |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/api/auth/login` | Public | Login untuk mendapatkan Token JWT |
-| `POST` | `/api/auth/register` | Admin | Mendaftarkan user baru |
-| `GET` | `/api/products` | All | Daftar menu dengan filter kategori |
-| `POST/PUT/DELETE` | `/api/products` | Admin | Manajemen data menu (CRUD) |
-| `GET/POST` | `/api/tables` | All/Admin | Manajemen denah & status meja |
-| `POST` | `/api/orders` | Admin, Kasir | Transaksi Checkout & Potong Stok |
-| `GET` | `/api/dashboard/cashier-stats` | Admin, Owner | Statistik pendapatan & profit |
+> **Penting:** Perbarui `config/db.js` dan `authMiddleware.js` agar membaca dari `process.env` supaya kredensial tidak hardcode di kode.
 
-## 🗄️ Struktur Database Utama
+### 3. Setup Database
 
-Project ini menggunakan skema PostgreSQL yang dioptimalkan untuk performa:
-* **`users`**: Data user, password (hashed), dan role.
-* **`categories`**: Klasifikasi menu (Makanan, Minuman, Coffee, dll).
-* **`products`**: Info menu, harga jual (`price`), harga modal (`cost_price`), dan stok.
-* **`tables`**: Denah meja dengan status `available` atau `occupied`.
-* **`orders`**: Header transaksi (Nomor Order, Total, ID Kasir).
-* **`order_items`**: Detail item per transaksi dengan `price_at_time` untuk akurasi laporan meskipun harga produk berubah.
+Buat database di PostgreSQL lalu jalankan SQL berikut:
 
-## 👤 Author
+```sql
+CREATE DATABASE "POS_cafe";
 
-* **Okiramadani** - Software Developer
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    role VARCHAR(10) CHECK (role IN ('admin', 'kasir', 'owner')) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE categories (id SERIAL PRIMARY KEY, name VARCHAR(50) NOT NULL);
+
+CREATE TABLE products (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    price NUMERIC(10,2) NOT NULL,
+    cost_price NUMERIC(10,2),
+    stock INTEGER DEFAULT 0,
+    category_id INTEGER REFERENCES categories(id),
+    sku VARCHAR(50),
+    image_url TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE tables (
+    id SERIAL PRIMARY KEY,
+    table_number VARCHAR(10) NOT NULL,
+    capacity INTEGER,
+    status VARCHAR(20) DEFAULT 'available',
+    pos_x INTEGER,
+    pos_y INTEGER
+);
+
+CREATE TABLE orders (
+    id SERIAL PRIMARY KEY,
+    order_no VARCHAR(30) UNIQUE NOT NULL,
+    user_id INTEGER REFERENCES users(id),
+    table_id INTEGER REFERENCES tables(id),
+    total_amount NUMERIC(10,2) NOT NULL,
+    status VARCHAR(20) DEFAULT 'completed',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE order_items (
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER REFERENCES orders(id),
+    product_id INTEGER REFERENCES products(id),
+    quantity INTEGER NOT NULL,
+    price_at_time NUMERIC(10,2) NOT NULL
+);
+```
+
+### 4. Jalankan Server
+
+```bash
+# Development (auto-restart on file change)
+npx nodemon index.js
+
+# Production
+node index.js
+```
+
+Server berjalan di: `http://localhost:8080`
+
+---
+
+## Dokumentasi API
+
+Swagger UI tersedia setelah server jalan:
+
+```
+http://localhost:8080/api-docs
+```
+
+Gunakan tombol **Authorize** di Swagger, masukkan token dari endpoint `/api/auth/login` dengan format:
+
+```
+Bearer <token_anda>
+```
+
+---
+
+## Endpoint
+
+### Auth
+
+| Method | Endpoint             | Role          | Deskripsi                          |
+| :----- | :------------------- | :------------ | :--------------------------------- |
+| POST   | `/api/auth/login`    | Public        | Login, kembalikan JWT token        |
+| POST   | `/api/auth/register` | Admin, Owner  | Buat akun user baru dengan role    |
+
+**Body login:**
+```json
+{ "username": "admin", "password": "password123" }
+```
+
+**Response login:**
+```json
+{
+  "status": "success",
+  "token": "eyJ...",
+  "role": "admin",
+  "username": "admin"
+}
+```
+
+---
+
+### Produk
+
+| Method | Endpoint              | Role          | Deskripsi                             |
+| :----- | :-------------------- | :------------ | :------------------------------------ |
+| GET    | `/api/products`       | Semua         | Daftar produk, bisa filter `?category_id=` |
+| POST   | `/api/products`       | Admin, Owner  | Tambah produk baru                    |
+| PUT    | `/api/products/:id`   | Admin, Owner  | Update data produk                    |
+| DELETE | `/api/products/:id`   | Admin, Owner  | Hapus produk                          |
+
+---
+
+### Kategori
+
+| Method | Endpoint                | Role          | Deskripsi             |
+| :----- | :---------------------- | :------------ | :-------------------- |
+| GET    | `/api/categories`       | Semua         | Daftar semua kategori |
+| POST   | `/api/categories`       | Admin, Owner  | Tambah kategori       |
+| PUT    | `/api/categories/:id`   | Admin, Owner  | Update kategori       |
+| DELETE | `/api/categories/:id`   | Admin, Owner  | Hapus kategori        |
+
+---
+
+### Meja
+
+| Method | Endpoint             | Role          | Deskripsi                       |
+| :----- | :------------------- | :------------ | :------------------------------ |
+| GET    | `/api/tables`        | Semua         | Daftar meja + status            |
+| POST   | `/api/tables`        | Admin, Owner  | Tambah meja                     |
+| PUT    | `/api/tables/:id`    | Semua (login) | Update status/data meja         |
+| DELETE | `/api/tables/:id`    | Admin, Owner  | Hapus meja                      |
+
+---
+
+### Order (Checkout)
+
+| Method | Endpoint       | Role                  | Deskripsi                                        |
+| :----- | :------------- | :-------------------- | :------------------------------------------------ |
+| POST   | `/api/orders`  | Semua (login)         | Proses checkout — catat transaksi & potong stok  |
+
+**Body checkout:**
+```json
+{
+  "table_id": 1,
+  "items": [
+    { "product_id": 3, "quantity": 2 },
+    { "product_id": 7, "quantity": 1 }
+  ]
+}
+```
+
+Proses checkout menggunakan **PostgreSQL transaction** (`BEGIN / COMMIT / ROLLBACK`) dengan row-level locking (`SELECT ... FOR UPDATE`) untuk mencegah race condition saat stok dipotong.
+
+---
+
+### Dashboard
+
+| Method | Endpoint                        | Role          | Deskripsi                                     |
+| :----- | :------------------------------ | :------------ | :-------------------------------------------- |
+| GET    | `/api/dashboard/cashier-stats`  | Admin, Owner  | Statistik transaksi & pendapatan per kasir    |
+
+---
+
+## Peran & Middleware
+
+```
+verifyToken → authorizeRole(['admin', 'owner'])
+```
+
+| Role    | Token Diverifikasi | Akses                                                   |
+| :------ | :----------------- | :------------------------------------------------------ |
+| `admin` | Ya                 | Semua endpoint — akses penuh                            |
+| `owner` | Ya                 | Sama dengan admin — akses penuh                         |
+| `kasir` | Ya                 | Hanya: GET produk (menu) + POST orders (checkout)       |
+
+**JWT Secret:** Semua token menggunakan secret `'rahasia_super_secret'`, konsisten antara `authController.js` dan `authMiddleware.js`.
+
+---
+
+## Author
+
+**Okiramadani** — Software Developer

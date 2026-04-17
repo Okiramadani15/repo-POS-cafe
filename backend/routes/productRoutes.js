@@ -6,9 +6,9 @@ const { verifyToken, authorizeRole } = require('../middleware/authMiddleware');
 // Endpoint publik/kasir
 router.get('/', getAllProducts);
 
-// Endpoint Admin
-router.post('/', verifyToken, authorizeRole(['admin']), createProduct);
-router.put('/:id', verifyToken, authorizeRole(['admin']), updateProduct);
-router.delete('/:id', verifyToken, authorizeRole(['admin']), deleteProduct);
+// Endpoint Admin & Owner
+router.post('/', verifyToken, authorizeRole(['admin', 'owner']), createProduct);
+router.put('/:id', verifyToken, authorizeRole(['admin', 'owner']), updateProduct);
+router.delete('/:id', verifyToken, authorizeRole(['admin', 'owner']), deleteProduct);
 
 module.exports = router;

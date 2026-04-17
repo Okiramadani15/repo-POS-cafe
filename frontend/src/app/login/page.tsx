@@ -30,10 +30,10 @@ export default function LoginPage() {
 
         // Beri jeda sedikit agar penyimpanan localStorage selesai sempurna
         setTimeout(() => {
-          if (role === 'admin') {
+          if (role === 'admin' || role === 'owner') {
             router.replace('/admin/dashboard'); // Gunakan replace agar tidak bisa "back" ke login
           } else {
-            router.replace('/pos');
+            router.replace('/pos'); // kasir hanya akses halaman POS
           }
         }, 100);
       }

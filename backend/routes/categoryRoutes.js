@@ -4,6 +4,6 @@ const { getCategories, createCategory } = require('../controllers/categoryContro
 const { verifyToken, authorizeRole } = require('../middleware/authMiddleware');
 
 router.get('/', getCategories);
-router.post('/', verifyToken, authorizeRole(['admin']), createCategory);
+router.post('/', verifyToken, authorizeRole(['admin', 'owner']), createCategory);
 
 module.exports = router;

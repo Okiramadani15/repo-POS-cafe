@@ -1,36 +1,153 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# POS Cafe — Frontend
 
-## Getting Started
+Antarmuka web untuk sistem Point of Sale cafe, dibangun dengan **Next.js 16**, **React 19**, **TypeScript**, dan **Tailwind CSS 4**. Terhubung ke backend API melalui Axios dengan injeksi JWT otomatis.
 
-First, run the development server:
+---
+
+## Tech Stack
+
+| Komponen       | Library / Versi                  |
+| :------------- | :------------------------------- |
+| Framework      | Next.js 16.2.4 (App Router)      |
+| UI Library     | React 19.2.4                     |
+| Bahasa         | TypeScript 5                     |
+| Styling        | Tailwind CSS 4 + PostCSS         |
+| HTTP Client    | Axios 1.15.0                     |
+| Icons          | Lucide React 1.8.0               |
+
+---
+
+## Struktur Direktori
+
+```
+frontend/
+├── src/
+│   ├── app/                     # Next.js App Router
+│   │   ├── layout.tsx           # Root layout (Geist font)
+│   │   ├── page.tsx             # Redirect otomatis ke /login
+│   │   ├── globals.css          # Global styles
+│   │   ├── login/
+│   │   │   └── page.tsx         # Halaman login (JWT authentication)
+│   │   ├── pos/
+│   │   │   └── page.tsx         # Interface kasir — menu + keranjang + checkout
+│   │   └── admin/
+│   │       ├── layout.tsx       # Admin layout dengan sidebar navigasi
+│   │       ├── dashboard/
+│   │       │   └── page.tsx     # Dashboard statistik (admin, owner)
+│   │       ├── products/
+│   │       │   └── page.tsx     # Manajemen produk CRUD (admin)
+│   │       ├── manage-users/
+│   │       │   └── page.tsx     # Manajemen akun staff (admin)
+│   │       └── orders/          # Riwayat transaksi (admin)
+│   ├── api/
+│   │   └── axiosConfig.ts       # Axios instance + JWT interceptor
+│   ├── components/
+│   │   ├── AdminGuard.tsx       # Proteksi route berdasarkan role
+│   │   └── Sidebar.tsx          # Sidebar navigasi admin
+│   └── types/
+│       └── index.ts             # TypeScript interfaces (Product, CartItem, Category)
+├── public/                      # Static assets
+├── next.config.ts
+├── tsconfig.json
+└── postcss.config.mjs
+```
+
+---
+
+## Instalasi & Setup
+
+### 1. Install Dependensi
+
+```bash
+cd Pos-cafe/frontend
+npm install
+```
+
+### 2. Konfigurasi API Base URL
+
+Base URL backend dikonfigurasi di [src/api/axiosConfig.ts](src/api/axiosConfig.ts):
+
+```ts
+const api = axios.create({
+  baseURL: 'http://localhost:8080/api',
+  // ...
+});
+```
+
+Ubah `baseURL` jika backend berjalan di host/port yang berbeda.
+
+### 3. Jalankan Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Aplikasi berjalan di: `http://localhost:3000`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 4. Build untuk Production
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## Halaman & Akses
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Route                    | Role yang Diizinkan  | Deskripsi                                               |
+| :----------------------- | :------------------- | :------------------------------------------------------ |
+| `/login`                 | Public               | Form login — simpan token ke localStorage               |
+| `/pos`                   | kasir                | Interface POS — lihat menu, keranjang, checkout         |
+| `/admin/dashboard`       | admin, owner         | Statistik pendapatan & performa kasir                   |
+| `/admin/products`        | admin, owner         | CRUD produk — tambah, edit, hapus                       |
+| `/admin/manage-users`    | admin, owner         | Tambah & kelola akun staff                              |
+| `/admin/orders`          | admin, owner         | Riwayat dan detail transaksi                            |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## Autentikasi & Proteksi Route
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Alur Login
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. User submit form di `/login`
+2. Response dari backend menyimpan `token`, `role`, dan `username` ke `localStorage`
+3. Redirect otomatis berdasarkan role:
+   - `admin` / `owner` → `/admin/dashboard`
+   - `kasir` → `/pos`
+4. Axios interceptor otomatis menyertakan token di header `Authorization: Bearer <token>` untuk setiap request
+5. Jika response `401 Unauthorized`, token dihapus dan user diarahkan kembali ke `/login`
+
+### Proteksi Halaman Admin
+
+Komponen `AdminGuard` ([src/components/AdminGuard.tsx](src/components/AdminGuard.tsx)) membaca `role` dari `localStorage`:
+- `admin` atau `owner` → diizinkan masuk ke semua halaman `/admin/*`
+- `kasir` → ditolak, dialihkan ke `/pos`
+
+---
+
+## Konfigurasi TypeScript
+
+Path alias `@/*` tersedia untuk import lebih bersih:
+
+```ts
+import api from '@/api/axiosConfig';
+import { Product } from '@/types';
+```
+
+---
+
+## Perintah Tersedia
+
+```bash
+npm run dev      # Development server dengan hot reload
+npm run build    # Build produksi
+npm run start    # Jalankan build produksi
+npm run lint     # Cek ESLint
+```
+
+---
+
+## Author
+
+**Okiramadani** — Software Developer

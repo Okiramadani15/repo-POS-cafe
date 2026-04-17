@@ -7,7 +7,7 @@ const verifyToken = (req, res, next) => {
     if (!token) return res.status(401).json({ message: 'Token tidak ditemukan' });
 
     try {
-        const verified = jwt.verify(token, 'rahasia_mill_2');
+        const verified = jwt.verify(token, 'rahasia_super_secret');
         req.user = verified; 
         next();
     } catch (err) {

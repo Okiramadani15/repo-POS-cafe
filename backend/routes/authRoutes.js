@@ -7,6 +7,6 @@ const { verifyToken, authorizeRole } = require('../middleware/authMiddleware');
 router.post('/login', login);
 
 // Route Register dikunci: Hanya Admin PT. KBM yang bisa mendaftarkan user baru
-router.post('/register', verifyToken, authorizeRole(['admin']), register);
+router.post('/register', verifyToken, authorizeRole(['admin','owner']), register);
 
 module.exports = router;
