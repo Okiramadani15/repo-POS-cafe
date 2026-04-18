@@ -42,54 +42,66 @@ const updateSettings = async (req, res) => {
 };
 
 // ─── UPLOAD logo (admin/owner) ────────────────────────────────────────────────
-// field: 'logo'  → key: 'logo_url'
-// field: 'login_logo' → key: 'login_logo_url'
+// 1 foto disimpan ke KEDUA key: logo_url & login_logo_url
 const uploadLogo = async (req, res) => {
-  if (!req.file) {
+  const uploaded = req.files?.logo?.[0] || req.files?.login_logo?.[0];
+  if (!uploaded) {
     return res.status(400).json({ status: 'error', message: 'File tidak ditemukan' });
   }
 
-  const fieldName = req.file.fieldname; // 'logo' atau 'login_logo'
-  const settingKey = fieldName === 'login_logo' ? 'login_logo_url' : 'logo_url';
-  const newUrl = `/uploads/${req.file.filename}`;
+  const newUrl = `/uploads/${uploaded.filename}`;
+  const keys   = ['logo_url', 'login_logo_url'];
 
   try {
-    // Hapus file lama jika ada
-    const old = await pool.query('SELECT value FROM app_settings WHERE key = $1', [settingKey]);
-    if (old.rows.length > 0 && old.rows[0].value) {
-      const oldPath = path.join(__dirname, '../uploads', path.basename(old.rows[0].value));
+    // Kumpulkan URL lama yang unik lalu hapus file fisiknya
+    const oldUrls = new Set();
+    for (const key of keys) {
+      const row = await pool.query('SELECT value FROM app_settings WHERE key = $1', [key]);
+      if (row.rows[0]?.value) oldUrls.add(row.rows[0].value);
+    }
+    for (const oldUrl of oldUrls) {
+      const oldPath = path.join(__dirname, '../uploads', path.basename(oldUrl));
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
     }
 
-    await pool.query(
-      `INSERT INTO app_settings (key, value, updated_at) VALUES ($1, $2, NOW())
-       ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()`,
-      [settingKey, newUrl]
-    );
+    // Simpan URL baru ke kedua key
+    for (const key of keys) {
+      await pool.query(
+        `INSERT INTO app_settings (key, value, updated_at) VALUES ($1, $2, NOW())
+         ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()`,
+        [key, newUrl]
+      );
+    }
 
-    res.json({ status: 'success', message: 'Logo berhasil diunggah', data: { [settingKey]: newUrl } });
+    res.json({ status: 'success', message: 'Logo berhasil diunggah', data: { logo_url: newUrl, login_logo_url: newUrl } });
   } catch (err) {
     res.status(500).json({ status: 'error', message: err.message });
   }
 };
 
 // ─── RESET logo ke default ────────────────────────────────────────────────────
+// Reset selalu menghapus file dan mengosongkan kedua key sekaligus
 const resetLogo = async (req, res) => {
-  const { type } = req.params; // 'logo' atau 'login_logo'
-  const settingKey = type === 'login_logo' ? 'login_logo_url' : 'logo_url';
+  const keys = ['logo_url', 'login_logo_url'];
 
   try {
-    const old = await pool.query('SELECT value FROM app_settings WHERE key = $1', [settingKey]);
-    if (old.rows.length > 0 && old.rows[0].value) {
-      const oldPath = path.join(__dirname, '../uploads', path.basename(old.rows[0].value));
+    const oldUrls = new Set();
+    for (const key of keys) {
+      const row = await pool.query('SELECT value FROM app_settings WHERE key = $1', [key]);
+      if (row.rows[0]?.value) oldUrls.add(row.rows[0].value);
+    }
+    for (const oldUrl of oldUrls) {
+      const oldPath = path.join(__dirname, '../uploads', path.basename(oldUrl));
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
     }
 
-    await pool.query(
-      `INSERT INTO app_settings (key, value, updated_at) VALUES ($1, NULL, NOW())
-       ON CONFLICT (key) DO UPDATE SET value = NULL, updated_at = NOW()`,
-      [settingKey]
-    );
+    for (const key of keys) {
+      await pool.query(
+        `INSERT INTO app_settings (key, value, updated_at) VALUES ($1, NULL, NOW())
+         ON CONFLICT (key) DO UPDATE SET value = NULL, updated_at = NOW()`,
+        [key]
+      );
+    }
 
     res.json({ status: 'success', message: 'Logo direset ke default' });
   } catch (err) {

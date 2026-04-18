@@ -4,7 +4,7 @@ import api from '@/api/axiosConfig';
 import {
   Store, Lock, Database, Info, Save, Loader2,
   CheckCircle2, AlertCircle, Coffee, Globe,
-  Phone, MapPin, Eye, EyeOff, Upload, ImageIcon, Trash2, RefreshCw
+  Phone, MapPin, Eye, EyeOff, Upload, ImageIcon, Trash2
 } from 'lucide-react';
 import { useAppSettings, invalidateSettingsCache, BACKEND_URL } from '@/hooks/useAppSettings';
 
@@ -294,37 +294,22 @@ export default function SettingsPage() {
 
       {/* ── LOGO APLIKASI ───────────────────────────────────────────────────── */}
       <SectionCard title="Logo Aplikasi" icon={<ImageIcon size={16} />}>
-        <div className="space-y-8">
-          {/* Info */}
+        <div className="space-y-6">
           <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 flex items-start gap-3">
             <Info size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
             <p className="text-xs text-blue-700 leading-relaxed">
-              Logo yang diunggah akan muncul di <strong>sidebar navigasi</strong> dan <strong>halaman POS</strong>.
-              Logo login akan muncul di <strong>halaman masuk</strong>. Gunakan format transparan (PNG/SVG) untuk hasil terbaik.
+              Logo yang diunggah akan otomatis muncul di <strong>sidebar</strong>, <strong>halaman login</strong>, dan <strong>header POS</strong>.
+              Gunakan format transparan (PNG/SVG) untuk hasil terbaik.
             </p>
           </div>
 
-          <div className="divide-y divide-slate-100 space-y-6">
-            {/* Logo utama */}
-            <LogoUploadCard
-              label="Logo Utama"
-              hint="Tampil di sidebar (kiri) dan header halaman POS"
-              currentUrl={settings.logo_url}
-              fieldName="logo"
-              onSuccess={refresh}
-            />
-
-            {/* Logo login */}
-            <div className="pt-6">
-              <LogoUploadCard
-                label="Logo Halaman Login"
-                hint="Tampil di tengah halaman login — bisa sama atau berbeda dengan logo utama"
-                currentUrl={settings.login_logo_url}
-                fieldName="login_logo"
-                onSuccess={refresh}
-              />
-            </div>
-          </div>
+          <LogoUploadCard
+            label="Logo Aplikasi"
+            hint="Tampil di sidebar, halaman login, dan header POS"
+            currentUrl={settings.logo_url}
+            fieldName="logo"
+            onSuccess={refresh}
+          />
         </div>
       </SectionCard>
 

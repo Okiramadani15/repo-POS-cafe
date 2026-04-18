@@ -62,7 +62,6 @@ export default function POSPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [paidInput, setPaidInput]       = useState('');
   const [notes, setNotes]               = useState('');
-  const [discount, setDiscount]         = useState('');
   const [successData, setSuccessData]   = useState<any>(null);
   const [kasirName, setKasirName]       = useState('');
   const { settings }                    = useAppSettings();
@@ -114,12 +113,11 @@ export default function POSPage() {
   };
 
   const removeFromCart = (id: number) => setCart(prev => prev.filter(i => i.id !== id));
-  const clearCart = () => { setCart([]); setSelectedTable(null); setNotes(''); setDiscount(''); setPaidInput(''); };
+  const clearCart = () => { setCart([]); setSelectedTable(null); setNotes(''); setPaidInput(''); };
 
   // ─── Computed values ─────────────────────────────────────────────────────
   const subtotal      = cart.reduce((s, i) => s + i.price * i.quantity, 0);
-  const discountAmt   = Math.min(parseFloat(discount) || 0, subtotal);
-  const grandTotal    = subtotal - discountAmt;
+  const grandTotal    = subtotal;
   const paidAmount    = parseFloat(paidInput) || 0;
   const change        = paymentMethod === 'cash' ? Math.max(paidAmount - grandTotal, 0) : 0;
   const isPaidEnough  = paymentMethod !== 'cash' || paidAmount >= grandTotal;
@@ -149,7 +147,6 @@ export default function POSPage() {
         payment_method: paymentMethod,
         payment_amount: paymentMethod === 'cash' ? paidAmount : grandTotal,
         notes: notes || null,
-        discount: discountAmt,
       });
       setSuccessData({ ...res.data.data, kembalian: res.data.data.kembalian ?? change });
       setShowConfirm(false);
@@ -352,17 +349,6 @@ export default function POSPage() {
                 onChange={e => setNotes(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-300"
               />
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-slate-500 font-medium whitespace-nowrap">Diskon (Rp)</label>
-                <input
-                  type="number"
-                  min={0}
-                  placeholder="0"
-                  value={discount}
-                  onChange={e => setDiscount(e.target.value)}
-                  className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-blue-300"
-                />
-              </div>
             </div>
           )}
 
@@ -372,11 +358,6 @@ export default function POSPage() {
               <div className="flex justify-between text-slate-500">
                 <span>Subtotal</span><span>{formatRp(subtotal)}</span>
               </div>
-              {discountAmt > 0 && (
-                <div className="flex justify-between text-emerald-600">
-                  <span>Diskon</span><span>- {formatRp(discountAmt)}</span>
-                </div>
-              )}
               <div className="flex justify-between font-extrabold text-slate-800 text-base pt-1 border-t border-slate-200">
                 <span>Total</span><span className="text-blue-600">{formatRp(grandTotal)}</span>
               </div>
@@ -427,8 +408,6 @@ export default function POSPage() {
 
               {/* Totals */}
               <div className="px-5 py-3 border-b border-slate-100 space-y-1.5 text-sm">
-                <div className="flex justify-between text-slate-500"><span>Subtotal</span><span>{formatRp(subtotal)}</span></div>
-                {discountAmt > 0 && <div className="flex justify-between text-emerald-600"><span>Diskon</span><span>- {formatRp(discountAmt)}</span></div>}
                 <div className="flex justify-between font-extrabold text-base text-slate-800 pt-1">
                   <span>Total</span><span className="text-blue-600">{formatRp(grandTotal)}</span>
                 </div>

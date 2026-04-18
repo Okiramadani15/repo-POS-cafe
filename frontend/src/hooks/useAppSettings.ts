@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '@/api/axiosConfig';
 
 export interface AppSettings {
@@ -12,7 +12,8 @@ export interface AppSettings {
   primary_color:   string;
 }
 
-const CACHE_KEY = 'pos_app_settings';
+const CACHE_KEY    = 'pos_app_settings';
+const SETTINGS_EVT = 'pos:settings-updated';
 
 const DEFAULT: AppSettings = {
   store_name:     'Point of Sale',
@@ -37,18 +38,7 @@ function loadCache(): AppSettings {
 export function useAppSettings() {
   const [settings, setSettings] = useState<AppSettings>(loadCache);
 
-  useEffect(() => {
-    api.get('/settings')
-      .then(res => {
-        const data: AppSettings = { ...DEFAULT, ...res.data.data };
-        setSettings(data);
-        localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-      })
-      .catch(() => { /* gunakan cache */ });
-  }, []);
-
-  // Fungsi untuk refresh manual setelah update settings
-  const refresh = () => {
+  const fetchAndCache = useCallback(() => {
     api.get('/settings')
       .then(res => {
         const data: AppSettings = { ...DEFAULT, ...res.data.data };
@@ -56,15 +46,31 @@ export function useAppSettings() {
         localStorage.setItem(CACHE_KEY, JSON.stringify(data));
       })
       .catch(() => {});
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchAndCache();
+
+    // Dengarkan event dari komponen lain (misal: settings page upload logo)
+    window.addEventListener(SETTINGS_EVT, fetchAndCache);
+    return () => window.removeEventListener(SETTINGS_EVT, fetchAndCache);
+  }, [fetchAndCache]);
+
+  /** Refresh manual + broadcast ke semua komponen yang pakai hook ini */
+  const refresh = useCallback(() => {
+    localStorage.removeItem(CACHE_KEY);
+    fetchAndCache();
+    window.dispatchEvent(new Event(SETTINGS_EVT));
+  }, [fetchAndCache]);
 
   return { settings, refresh };
 }
 
-/** Util: invalidate cache supaya halaman lain ikut refresh */
+/** Broadcast update settings ke semua instance hook (Sidebar, Login, POS, dst.) */
 export function invalidateSettingsCache() {
   if (typeof window !== 'undefined') {
     localStorage.removeItem(CACHE_KEY);
+    window.dispatchEvent(new Event(SETTINGS_EVT));
   }
 }
 

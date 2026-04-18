@@ -138,7 +138,7 @@ const getAllOrders = async (req, res) => {
     const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
 
     const result = await pool.query(`
-      SELECT o.id, o.order_no, o.total_amount, o.discount, o.status, o.created_at,
+      SELECT o.id, o.order_no, o.total_amount, o.status, o.created_at,
              o.payment_method, o.payment_amount, o.change_amount, o.notes,
              u.username AS kasir,
              t.table_number AS meja
@@ -163,7 +163,7 @@ const getOrderDetail = async (req, res) => {
     const { id } = req.params;
 
     const orderRes = await pool.query(`
-      SELECT o.id, o.order_no, o.total_amount, o.discount, o.status, o.created_at,
+      SELECT o.id, o.order_no, o.total_amount, o.status, o.created_at,
              o.payment_method, o.payment_amount, o.change_amount, o.notes,
              u.username AS kasir,
              t.table_number AS meja

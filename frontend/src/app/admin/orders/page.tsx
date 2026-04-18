@@ -10,7 +10,6 @@ interface Order {
   id: number;
   order_no: string;
   total_amount: number;
-  discount: number;
   status: string;
   created_at: string;
   kasir: string;
@@ -346,12 +345,6 @@ export default function OrdersPage() {
                       {PAYMENT_LABEL[detail.payment_method] ?? detail.payment_method ?? '-'}
                     </span>
                   </div>
-                  {Number(detail.discount) > 0 && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-500">Diskon</span>
-                      <span className="font-semibold text-orange-500">- {formatRp(Number(detail.discount))}</span>
-                    </div>
-                  )}
                   <div className="flex items-center justify-between border-t border-slate-200 pt-2">
                     <span className="font-bold text-slate-700">Total</span>
                     <span className="text-base font-extrabold text-emerald-600">{formatRp(Number(detail.total_amount))}</span>
