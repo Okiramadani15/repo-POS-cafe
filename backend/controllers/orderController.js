@@ -7,7 +7,6 @@ const createOrder = async (req, res) => {
     payment_method = 'cash',   // cash | qris | transfer | dana | ovo | gopay
     payment_amount,            // jumlah uang diterima (untuk cash)
     notes,                     // catatan pesanan
-    discount = 0,              // diskon dalam rupiah
   } = req.body;
 
   const user_id = req.user ? req.user.id : null;
@@ -55,9 +54,8 @@ const createOrder = async (req, res) => {
       await client.query('UPDATE products SET stock = stock - $1 WHERE id = $2', [item.quantity, item.product_id]);
     }
 
-    // --- 4. HITUNG DISKON & KEMBALIAN ---
-    const discountAmt    = Math.min(parseFloat(discount) || 0, totalAmount);
-    const grandTotal     = totalAmount - discountAmt;
+    // --- 4. HITUNG KEMBALIAN ---
+    const grandTotal     = totalAmount;
     const paidAmount     = payment_method === 'cash' ? (parseFloat(payment_amount) || grandTotal) : grandTotal;
     const changeAmount   = payment_method === 'cash' ? Math.max(paidAmount - grandTotal, 0) : 0;
 
@@ -69,10 +67,10 @@ const createOrder = async (req, res) => {
     const order_no = 'ORD-' + Date.now();
     const newOrder = await client.query(
       `INSERT INTO orders
-         (order_no, user_id, table_id, total_amount, discount, status,
+         (order_no, user_id, table_id, total_amount, status,
           payment_method, payment_amount, change_amount, notes, created_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW()) RETURNING *`,
-      [order_no, user_id, table_id || null, grandTotal, discountAmt, 'success',
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW()) RETURNING *`,
+      [order_no, user_id, table_id || null, grandTotal, 'success',
        payment_method, paidAmount, changeAmount, notes || null]
     );
 

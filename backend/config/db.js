@@ -1,16 +1,20 @@
+require('dotenv').config();
 const { Pool } = require('pg');
 
-// Konfigurasi pool sesuai database PostgreSQL kamu
 const pool = new Pool({
-  user: 'postgres',
-  host: 'localhost',
-  database: 'POS_cafe',
-  password: '', // Kosongkan sesuai info sebelumnya
-  port: 5432,
+  host:     process.env.DB_HOST     || 'localhost',
+  port:     parseInt(process.env.DB_PORT || '5432'),
+  database: process.env.DB_NAME     || 'POS_cafe',
+  user:     process.env.DB_USER     || 'postgres',
+  password: process.env.DB_PASSWORD || '',
 });
 
 pool.on('connect', () => {
-  console.log('Koneksi ke Database POS_cafe Berhasil!');
+  console.log(`✅ Database terhubung: ${process.env.DB_NAME || 'POS_cafe'}`);
+});
+
+pool.on('error', (err) => {
+  console.error('❌ Database error:', err.message);
 });
 
 module.exports = pool;

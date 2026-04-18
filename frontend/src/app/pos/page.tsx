@@ -21,7 +21,7 @@ interface Product {
 }
 interface CartItem extends Product { quantity: number; }
 interface TableItem {
-  id: number;
+  id: string;
   table_number: string;
   capacity: number;
   status: 'available' | 'occupied' | 'reserved';
@@ -46,7 +46,7 @@ const PAYMENT_METHODS: { key: PaymentMethod; label: string; icon: React.ReactNod
 ];
 
 // Quick-nominal for cash input
-const QUICK_NOMINALS = [5000, 10000, 20000, 50000, 100000, 50000];
+const QUICK_NOMINALS = [5000, 10000, 20000, 50000, 100000, 200000];
 
 export default function POSPage() {
   const [products, setProducts]         = useState<Product[]>([]);
@@ -56,7 +56,8 @@ export default function POSPage() {
   const [loading, setLoading]           = useState(true);
   const [search, setSearch]             = useState('');
   const [activeCat, setActiveCat]       = useState<number | null>(null);
-  const [selectedTable, setSelectedTable] = useState<number | null>(null);
+  const [selectedTable, setSelectedTable] = useState<string | null>(null);
+  const [showTablePicker, setShowTablePicker] = useState(false);
   const [showConfirm, setShowConfirm]   = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
@@ -113,7 +114,17 @@ export default function POSPage() {
   };
 
   const removeFromCart = (id: number) => setCart(prev => prev.filter(i => i.id !== id));
-  const clearCart = () => { setCart([]); setSelectedTable(null); setNotes(''); setPaidInput(''); };
+  const clearCart = () => { setCart([]); setSelectedTable(null); setNotes(''); setPaidInput(''); setPaymentMethod('cash'); };
+
+  const [releaseLoading, setReleaseLoading] = useState(false);
+  const releaseTable = async (tableId: string) => {
+    setReleaseLoading(true);
+    try {
+      await api.put(`/tables/${tableId}`, { status: 'available' });
+      await fetchAll();
+    } catch { /* admin bisa bebaskan dari halaman Meja */ }
+    finally { setReleaseLoading(false); }
+  };
 
   // ─── Computed values ─────────────────────────────────────────────────────
   const subtotal      = cart.reduce((s, i) => s + i.price * i.quantity, 0);
@@ -294,24 +305,27 @@ export default function POSPage() {
 
           {/* Table selector */}
           <div className="px-4 py-3 border-b border-slate-50">
-            <label className="block text-xs font-semibold text-slate-500 mb-1.5 flex items-center gap-1.5">
-              <LayoutGrid size={12} /> Pilih Meja (opsional)
-            </label>
-            <div className="relative">
-              <select
-                value={selectedTable ?? ''}
-                onChange={e => setSelectedTable(e.target.value ? parseInt(e.target.value) : null)}
-                className="w-full appearance-none pl-3 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-300 text-slate-700 font-medium"
-              >
-                <option value="">— Takeaway / Tanpa Meja —</option>
-                {tables.filter(t => t.status !== 'reserved').map(t => (
-                  <option key={t.id} value={t.id} disabled={t.status === 'occupied'}>
-                    Meja {t.table_number} ({t.capacity} orang){t.status === 'occupied' ? ' — Terisi' : ''}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-            </div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <LayoutGrid size={11} /> Meja
+            </p>
+            <button
+              onClick={() => setShowTablePicker(true)}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border-2 transition-all text-sm font-semibold
+                ${selectedTable
+                  ? 'border-blue-400 bg-blue-50 text-blue-700'
+                  : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300'}`}
+            >
+              <div className="flex items-center gap-2">
+                <LayoutGrid size={14} className={selectedTable ? 'text-blue-500' : 'text-slate-400'} />
+                {selectedTable
+                  ? (() => { const t = tables.find(x => x.id === selectedTable); return t ? `Meja ${t.table_number} · ${t.capacity} orang` : 'Pilih Meja'; })()
+                  : 'Takeaway / Tanpa Meja'}
+              </div>
+              {selectedTable
+                ? <span onClick={e => { e.stopPropagation(); setSelectedTable(null); }} className="text-blue-400 hover:text-blue-600 p-0.5 cursor-pointer"><X size={14} /></span>
+                : <ChevronDown size={14} className="text-slate-400" />
+              }
+            </button>
           </div>
 
           {/* Cart items */}
@@ -339,7 +353,7 @@ export default function POSPage() {
             )}
           </div>
 
-          {/* Notes & discount */}
+          {/* Notes */}
           {cart.length > 0 && (
             <div className="px-4 py-2 border-t border-slate-50 space-y-2">
               <input
@@ -572,14 +586,133 @@ export default function POSPage() {
                   <div className="flex justify-between text-emerald-700 font-extrabold"><span>Kembalian</span><span>{formatRp(Number(successData.kembalian ?? 0))}</span></div>
                 </>
               )}
+              {successData.table_id && (() => {
+                const t = tables.find(x => x.id === successData.table_id);
+                return t ? (
+                  <div className="flex justify-between text-slate-600">
+                    <span>Meja</span><span className="font-bold">Meja {t.table_number}</span>
+                  </div>
+                ) : null;
+              })()}
             </div>
-            <div className="p-5">
+            {/* Bebaskan meja jika ada */}
+            {successData.table_id && (
+              <div className="px-5 pb-3">
+                <button
+                  onClick={() => releaseTable(successData.table_id)}
+                  disabled={releaseLoading}
+                  className="w-full py-2.5 border-2 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-60"
+                >
+                  {releaseLoading
+                    ? <Loader2 size={15} className="animate-spin" />
+                    : <LayoutGrid size={15} />}
+                  Bebaskan Meja
+                </button>
+              </div>
+            )}
+            <div className="px-5 pb-5">
               <button
                 onClick={() => setSuccessData(null)}
                 className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all"
               >
                 Pesanan Baru
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ MODAL PILIH MEJA ════════════════════════════════════════════════ */}
+      {showTablePicker && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setShowTablePicker(false)} />
+          <div className="relative bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 className="font-extrabold text-lg text-slate-800">Pilih Meja</h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  <span className="text-emerald-600 font-semibold">{tables.filter(t => t.status === 'available').length} tersedia</span>
+                  {' · '}
+                  <span className="text-red-500 font-semibold">{tables.filter(t => t.status === 'occupied').length} terisi</span>
+                  {' · '}
+                  {tables.length} total
+                </p>
+              </div>
+              <button onClick={() => setShowTablePicker(false)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
+                <X size={18} className="text-slate-400" />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto max-h-[65vh]">
+              {/* Takeaway */}
+              <button
+                onClick={() => { setSelectedTable(null); setShowTablePicker(false); }}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 mb-4 transition-all font-semibold text-sm
+                  ${selectedTable === null
+                    ? 'border-blue-400 bg-blue-50 text-blue-700'
+                    : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50'}`}
+              >
+                <Package size={16} />
+                <span>Takeaway / Tanpa Meja</span>
+                {selectedTable === null && <CheckCircle size={16} className="ml-auto text-blue-500" />}
+              </button>
+
+              {/* Legend */}
+              <div className="flex items-center gap-1.5 mb-3">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1">Status</p>
+                <span className="flex items-center gap-1 text-[10px] text-emerald-600 font-semibold px-2 py-0.5 bg-emerald-50 rounded-full"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />Tersedia</span>
+                <span className="flex items-center gap-1 text-[10px] text-red-500 font-semibold px-2 py-0.5 bg-red-50 rounded-full"><span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block" />Terisi</span>
+                <span className="flex items-center gap-1 text-[10px] text-amber-500 font-semibold px-2 py-0.5 bg-amber-50 rounded-full"><span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />Dipesan</span>
+              </div>
+
+              {tables.length === 0 ? (
+                <div className="text-center py-10 text-slate-300">
+                  <LayoutGrid size={36} className="mx-auto mb-2" />
+                  <p className="text-sm font-medium">Belum ada meja terdaftar</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
+                  {tables.map(t => {
+                    const isSelected = selectedTable === t.id;
+                    const isAvailable = t.status === 'available';
+                    const isOccupied  = t.status === 'occupied';
+                    return (
+                      <button
+                        key={t.id}
+                        disabled={!isAvailable}
+                        onClick={() => { setSelectedTable(t.id); setShowTablePicker(false); }}
+                        className={`relative p-3 rounded-2xl border-2 text-center transition-all
+                          ${isSelected
+                            ? 'border-blue-500 bg-blue-50 shadow-md shadow-blue-100'
+                            : isAvailable
+                              ? 'border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 hover:shadow-sm active:scale-95 cursor-pointer'
+                              : isOccupied
+                                ? 'border-red-200 bg-red-50/40 opacity-60 cursor-not-allowed'
+                                : 'border-amber-200 bg-amber-50/40 opacity-60 cursor-not-allowed'}`}
+                      >
+                        {isSelected && (
+                          <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center shadow">
+                            <CheckCircle size={11} className="text-white" />
+                          </div>
+                        )}
+                        <div className={`w-2 h-2 rounded-full mx-auto mb-2
+                          ${isAvailable ? 'bg-emerald-400' : isOccupied ? 'bg-red-400' : 'bg-amber-400'}`}
+                        />
+                        <p className={`text-sm font-extrabold leading-none
+                          ${isSelected ? 'text-blue-700' : isAvailable ? 'text-slate-700' : 'text-slate-400'}`}>
+                          {t.table_number}
+                        </p>
+                        <p className="text-[10px] text-slate-400 mt-1">{t.capacity} org</p>
+                        <p className={`text-[9px] font-bold mt-0.5
+                          ${isAvailable ? 'text-emerald-500' : isOccupied ? 'text-red-400' : 'text-amber-500'}`}>
+                          {isAvailable ? 'Tersedia' : isOccupied ? 'Terisi' : 'Dipesan'}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>

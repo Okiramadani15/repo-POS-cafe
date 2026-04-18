@@ -36,7 +36,10 @@ function loadCache(): AppSettings {
 }
 
 export function useAppSettings() {
-  const [settings, setSettings] = useState<AppSettings>(loadCache);
+  // Selalu mulai dari DEFAULT — server dan client harus sama di render pertama.
+  // Jika dimulai dari loadCache(), server render DEFAULT (localStorage tidak ada)
+  // sementara client render dari cache → hydration mismatch.
+  const [settings, setSettings] = useState<AppSettings>(DEFAULT);
 
   const fetchAndCache = useCallback(() => {
     api.get('/settings')
@@ -49,9 +52,13 @@ export function useAppSettings() {
   }, []);
 
   useEffect(() => {
+    // Setelah mount (client-only): terapkan cache lokal dulu agar tidak flicker,
+    // lalu langsung fetch API untuk data terbaru.
+    const cached = loadCache();
+    setSettings(cached);
+
     fetchAndCache();
 
-    // Dengarkan event dari komponen lain (misal: settings page upload logo)
     window.addEventListener(SETTINGS_EVT, fetchAndCache);
     return () => window.removeEventListener(SETTINGS_EVT, fetchAndCache);
   }, [fetchAndCache]);
